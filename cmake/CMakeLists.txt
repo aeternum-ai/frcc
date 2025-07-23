@@ -46,5 +46,5 @@ install(DIRECTORY ${FRROOT}/include/
 #     include(frcc_unittest.cmake)
 # endif (frcc_BUILD_TEST)
 
-include(summary.cmake)
-frcc_print_configuration_summary()
+# include(summary.cmake)
+# frcc_print_configuration_summary()
