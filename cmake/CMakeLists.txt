@@ -2,15 +2,27 @@ cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_CXX_STANDARD 17)
 project(frcc VERSION 0.0.0 LANGUAGES C CXX)
 
-option(frcc_BUILD_TEST OFF)
+include(utils.cmake)
 
-set(FRROOT ${PROJECT_SOURCE_DIR}/..)
-set(FRROOT_SRC ${XSROOT}/src)
-set(THIRD_PARTY_ROOT ${XSROOT}/cmake/external)
+option(frcc_BUILD_TEST ON)
+
+set(FRCC_ROOT ${PROJECT_SOURCE_DIR}/..)
+set(FRCC_ROOT_SRC ${FRCC_ROOT}/src)
+set(THIRD_PARTY_ROOT ${FRCC_ROOT}/cmake/external)
 
 include_directories(
-        ${XSROOT}/include/
+        ${FRCC_ROOT}/include/
+        ${FRCC_ROOT}/cmake/external/onnx
 )
+
+# Build ONNX
+if (NOT DEFINED ONNX_TARGET_NAME)
+  set(ONNX_TARGET_NAME onnx)
+endif()
+
+set(ONNX_ROOT ${FRCC_ROOT}/cmake/external/onnx)
+set(ONNX_ML ON)
+add_subdirectory_if_no_target(${ONNX_ROOT} ${ONNX_TARGET_NAME})
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -33,14 +45,20 @@ add_library(frcc
         ${frcc_common_src}
 )
 
+target_link_libraries(frcc PUBLIC ${ONNX_TARGET_NAME})
+
 set_target_properties(frcc PROPERTIES VERSION ${PROJECT_VERSION})
 
 install(TARGETS frcc
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_LIBDIR}/include)
 
-install(DIRECTORY ${FRROOT}/include/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/xsdnn)
+install(DIRECTORY ${FRCC_ROOT}/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/frcc)
+
+if (frcc_BUILD_TEST)
+        include(frcc_test.cmake)
+endif(frcc_BUILD_TEST)
 
 # if (frcc_BUILD_TEST)
 #     include(frcc_unittest.cmake)

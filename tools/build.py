@@ -96,7 +96,8 @@ def generate_build_tree(cmake_path, source_dir, build_dir, args):
     cmake_args = [
         cmake_path, "-S", "./cmake", "-B", build_dir,
         "-DCMAKE_BUILD_TYPE=" + args.config,
-        "-DBUILD_SHARED_LIBS=" + ("ON" if args.build_shared_lib else "OFF")
+        "-DBUILD_SHARED_LIBS=" + ("ON" if args.build_shared_lib else "OFF"),
+        "-Dfrcc_BUILD_TEST=" + ("OFF" if args.skip_build_test else "ON"),
         ]
 
     return cmake_args
@@ -140,20 +141,14 @@ def build_protobuf(source_dir, args):
         update_dynamic_libs()
     os.chdir(source_dir)
 
-def compile_onnx(protoc_path, source_dir):
-    protoc_path = resolve_executable_path(protoc_path)
-    onnx_proto = source_dir + "/cmake/external/onnx/onnx"
-    destination = source_dir + "/include/onnx"
-    subprocess.run([protoc_path, f"--cpp_out={destination}", f"--proto_path={onnx_proto}", "onnx.proto3"])
-
 
 def run_build(build_tree, source_dir, script_dir):
     os.chdir(source_dir)
     subprocess.run(build_tree)
     os.chdir(script_dir)
 
-def make(source_dir, build_dir, script_dir, args):
-    os.chdir(source_dir + "/" + build_dir)
+def make(build_dir, script_dir, args):
+    os.chdir(build_dir)
     make_args = [
         "make",
         f"-j{multiprocessing.cpu_count() if args.parallel else 1}"
@@ -192,11 +187,9 @@ def main():
 
     if shutil.which("protoc") is None:
         build_protobuf(source_dir, args)
-    compile_onnx(protoc_path=args.protoc_path, source_dir=source_dir)
-    
-    # run_build(cmake_args, source_dir, script_dir)
 
-    # make(source_dir, build_dir, script_dir, args)
+    run_build(cmake_args, source_dir, script_dir)
+    make(build_dir, script_dir, args)
     # if args.install:
     #     install(source_dir, build_dir, script_dir, args)
     #     if args.build_shared_lib:

@@ -1,4 +1,4 @@
 set(
         frcc_common_src
-        "${FRROOT_SRC}"
+        "${FRCC_ROOT_SRC}/pass.cc"
 )
