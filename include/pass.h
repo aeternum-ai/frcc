@@ -6,60 +6,39 @@
 
 namespace frcc{
 
-// Base struct representing result of a pass.
+
 struct PostPassAnalysis {
     virtual ~PostPassAnalysis() = default;
 };
 
 enum PassType {
     Fuse = 0,
+    Nop = 1
 };
 
-// Enum that represents the return type of the analysis.
 enum PassAnalysisType {
-    // An empty analysis is returned. Most likely will return PostPassAnalysis.
     Empty = 0,
-    // A count based analysis is returned. Most likely of type
-    // CountBasedPassAnalysis
     CountBased = 1
 };
 
 enum PassEfficiency {
-  // A partially efficient optimization pass cannot guarantee that running two
-  // consecutive passes
-  // will return the same result as running a single pass.
-  Partial = 0,
-  // A completely efficient optimization guarantees that running two consecutive
-  // passes is equivalent
-  // to running a single pass.
-  Complete = 1
+    Partial = 0,
+    Complete = 1
 };
 
 enum PassOptimizationType {
-    // Is not optimizing anything. Most likely will be used in an immutable pass.
     None = 0,
-    // Optimizes for compute.
     Compute = 1,
-    // Optimizes for memory.
     Memory = 2,
-    // Optimizes for both compute and memory.
     ComputeMemory = 3,
-    // Optimizes for stability (e.g. log-sum-exp trick).
     Stability = 4
 };
 
 enum NodeDestroyType {
-  // Does not destroy node
-  DestroyFalse = 0,
-  // Equivalent to calling it.destroyCurrent() once.
-  DestroyTrue = 1,
+    DestroyFalse = 0,
+    DestroyTrue = 1,
 };
 
-// Base class for all optimizations within ONNX. A pass must contain the
-// annotations described above. Furthermore each pass is given the ability to
-// initialize and finalize it's pass. Each pass must have a unique name that
-// pass managers/registry will use as identification. Finally the pass
-// implements runPass which completes the pass inplace.
 class Pass {
     PassType pass_type;
     PassEfficiency pass_efficiency;
@@ -90,6 +69,86 @@ class Pass {
     }
     virtual std::shared_ptr<PostPassAnalysis> runPass(onnx::Graph &graph) = 0;
 };
+
+class PatternMatchingPass : public Pass {
+public:
+    explicit PatternMatchingPass(PassType pass_type, 
+        PassEfficiency pass_efficiency,
+        PassOptimizationType pass_optimization_type) :
+        Pass(pass_type, pass_efficiency, pass_optimization_type) {}
+
+    ~PatternMatchingPass() override;
+
+    virtual bool patternMatchPredicate(onnx::Node *node) = 0;
+    virtual bool runTransform(onnx::Node *node, onnx::Graph &graph,
+                            NodeDestroyType &destroy_current) = 0;
+
+    std::shared_ptr<PostPassAnalysis> runPass(onnx::Graph &graph) override;
+
+    PassAnalysisType getPassAnalysisType() const override;
+
+private:
+    unsigned int runPassInternal(onnx::Graph& graph);
+};
+
+
+struct CountBasedPassAnalysis : PostPassAnalysis {
+    Pass *pass;
+    unsigned int num_positive_transforms;
+    bool initialization_done;
+    bool finalization_done;
+
+public:
+    explicit CountBasedPassAnalysis(Pass *pass,
+                                    unsigned int num_positive_transforms,
+                                    bool initialization_done,
+                                    bool finalization_done);
+
+    bool graphChanged() {
+    return this->num_positive_transforms > 0;
+    }
+    bool numSucceededTransforms() {
+    return this->num_positive_transforms;
+    }
+};
+
+inline bool areTwoValuesBothInputOrOutput(const onnx::Value *value1,
+                                          const onnx::Value *value2) {
+  const auto IsInputOrOutput = [](const onnx::Value *value) {
+    const auto graph = value->owningGraph();
+    const bool is_output =
+        std::find(graph->outputs().rbegin(), graph->outputs().rend(), value) !=
+        graph->outputs().rend();
+    const bool is_input =
+        value->node()->kind() == onnx::kCaptured ||
+        std::find(graph->inputs().rbegin(), graph->inputs().rend(), value) !=
+            graph->inputs().rend();
+    return is_output || is_input;
+  };
+  return IsInputOrOutput(value1) && IsInputOrOutput(value2);
+}
+
+inline bool tryReplacingAllUsesWith(onnx::Value *oldValue, onnx::Value *newValue) {
+  if (areTwoValuesBothInputOrOutput(oldValue, newValue)) {
+    return false;
+  }
+  oldValue->replaceAllUsesWith(newValue);
+  return true;
+}
+
+inline bool tryReplacingAllUsesWith(onnx::Node *oldNode, onnx::Node *newNode) {
+  assert(oldNode->outputs().size() == newNode->outputs().size());
+  size_t nOutputs = oldNode->outputs().size();
+  for (size_t i = 0; i < nOutputs; i++) {
+    const auto *oldValue = oldNode->outputs()[i];
+    const auto *newValue = newNode->outputs()[i];
+    if (areTwoValuesBothInputOrOutput(oldValue, newValue)) {
+      return false;
+    }
+  }
+  oldNode->replaceAllUsesWith(newNode);
+  return true;
+}
 
 }
 

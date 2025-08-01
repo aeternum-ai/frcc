@@ -43,3 +43,4 @@
 include/onnx/onnx.proto3.pb.cc
 include/onnx/onnx.proto3.pb.h
 build/
+model/

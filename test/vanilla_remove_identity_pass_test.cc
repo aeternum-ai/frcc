@@ -1,10 +1,8 @@
-#include "onnx/onnx_pb.h"
-#include <fstream>
-#include <iostream>
 #include "optimizer.h"
+#include "utils.h"
 
 int main() {
-    std::string filename = "yolos2.onnx"; // Replace with your ONNX model file path
+    std::string filename = "new6785.onnx"; // Replace with your ONNX model file path
 
     onnx::ModelProto model;
     std::ifstream in(filename, std::ios_base::binary);
@@ -26,9 +24,10 @@ int main() {
     std::cout << "Graph name: " << model.graph().name() << std::endl;
     // You can now access other properties of the model, such as inputs, outputs, nodes, etc.
 
-    std::vector<std::string> pass_names = {"fuse"};
+    std::vector<std::string> pass_names = {"vanilla_remove_identity"};
     frcc::Optimizer opt(pass_names);
     auto m = opt.optimize(model);
 
+    saveOnnxModel(m, "without_identity.onnx");
     return 0;
 }

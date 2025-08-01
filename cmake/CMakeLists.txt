@@ -56,9 +56,8 @@ install(TARGETS frcc
 install(DIRECTORY ${FRCC_ROOT}/include/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/frcc)
 
-if (frcc_BUILD_TEST)
-        include(frcc_test.cmake)
-endif(frcc_BUILD_TEST)
+include(frcc_test.cmake)
+
 
 # if (frcc_BUILD_TEST)
 #     include(frcc_unittest.cmake)

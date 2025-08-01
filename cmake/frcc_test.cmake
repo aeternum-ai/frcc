@@ -14,3 +14,8 @@ AddTest(
         frcc_compile_main_test
         ${FRCC_TEST_ROOT}/vanilla_test.cc
 )
+
+AddTest(
+        frcc_vanilla_remove_identity_pass_test
+        ${FRCC_TEST_ROOT}/vanilla_remove_identity_pass_test.cc
+)
