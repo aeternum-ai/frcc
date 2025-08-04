@@ -10,7 +10,7 @@
 #include "onnx/common/ir_pb_converter.h"
 #include "onnx/proto_utils.h"
 
-#include "passes/vanilla_remove_identity_pass.h"
+#include "passes/eliminate_identity_pass.h"
 
 namespace frcc {
 
@@ -19,7 +19,7 @@ struct GlobalPassRegistry {
     std::vector<std::string> passes_names;
 
     GlobalPassRegistry() {
-        registerPass<VanillaRemoveIdentityPass>();
+        registerPass<EliminateIdentityPass>();
     }
 
     ~GlobalPassRegistry() {

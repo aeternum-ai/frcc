@@ -4,6 +4,7 @@
 #include "onnx/common/ir.h"
 #include "onnx/common/ir_pb_converter.h"
 #include "onnx/proto_utils.h"
+#include "onnx/shape_inference/implementation.h"
 
 #include "pass_manager.h"
 #include "pass_register.h"
@@ -15,7 +16,7 @@ public:
     Optimizer(std::vector<std::string>& pass_names);
     ~Optimizer();
 
-    onnx::ModelProto optimize(const onnx::ModelProto& _mp_in) {
+    onnx::ModelProto optimize(const onnx::ModelProto& _mp_in, const bool inference_shape=true) {
         onnx::ModelProto mp_in = _mp_in;
         if (mp_in.ir_version() <= 3) {
             mp_in.set_ir_version(4);
@@ -36,6 +37,9 @@ public:
         onnx::ModelProto mp_out = onnx::PrepareOutput(mp_in);
         this->pass_manager->run(*g);
         onnx::ExportModelProto(&mp_out, g);
+
+        if (inference_shape) 
+            onnx::shape_inference::InferShapes(mp_out);
 
         return mp_out;
     }

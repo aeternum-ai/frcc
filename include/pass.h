@@ -13,7 +13,8 @@ struct PostPassAnalysis {
 
 enum PassType {
     Fuse = 0,
-    Nop = 1
+    Nop = 1,
+    Other = 2
 };
 
 enum PassAnalysisType {
@@ -89,6 +90,15 @@ public:
 
 private:
     unsigned int runPassInternal(onnx::Graph& graph);
+};
+
+class FullGraphBasedPass : public Pass {
+ public:
+  explicit FullGraphBasedPass(PassType pass_type,
+                              PassEfficiency pass_efficiency,
+                              PassOptimizationType pass_optimization_type)
+      : Pass(pass_type, pass_efficiency, pass_optimization_type) {}
+  ~FullGraphBasedPass() override;
 };
 
 

@@ -1,17 +1,17 @@
-#ifndef VANILLA_REMOVE_IDENTITY_PASS_H
-#define VANILLA_REMOVE_IDENTITY_PASS_H
+#ifndef ELIMINATE_IDENTITY_PASS_H
+#define ELIMINATE_IDENTITY_PASS_H
 
 #include "pass.h"
 
 namespace frcc {
 
-struct VanillaRemoveIdentityPass final : public PatternMatchingPass {
-    explicit VanillaRemoveIdentityPass() 
+struct EliminateIdentityPass final : public PatternMatchingPass {
+    explicit EliminateIdentityPass() 
         : PatternMatchingPass(PassType::Nop, 
             PassEfficiency::Complete, PassOptimizationType::Compute) {}
 
     std::string getPassName() const override {
-        return "vanilla_remove_identity";
+        return "eliminate_identity";
     }
 
     bool patternMatchPredicate(onnx::Node *node) override {
