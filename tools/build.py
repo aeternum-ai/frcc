@@ -50,34 +50,11 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--build_shared_lib",
-        action='store_true',
-        help="Set to build shared lib"
-    )
-
-    parser.add_argument(
-        "--install",
-        action='store_true',
-        help="Set to install xsdnn into 'CMAKE_INSTALL_LIBDIR'"
-    )
-
-    parser.add_argument(
             "--cmake_path",
             default="cmake",
             help="Path to the CMake program."
     )
 
-    parser.add_argument(
-            "--protoc_path",
-            default="protoc",
-            help="Path to the Proto Compiler program"
-    )
-
-    parser.add_argument(
-            "--skip_build_test",
-            action='store_true',
-            help="Turn ON to skip build unit test."
-    )
 
     parser.add_argument(
         "--parallel",
@@ -96,14 +73,9 @@ def generate_build_tree(cmake_path, source_dir, build_dir, args):
     cmake_args = [
         cmake_path, "-S", "./cmake", "-B", build_dir,
         "-DCMAKE_BUILD_TYPE=" + args.config,
-        "-DBUILD_SHARED_LIBS=" + ("ON" if args.build_shared_lib else "OFF"),
-        "-Dfrcc_BUILD_TEST=" + ("OFF" if args.skip_build_test else "ON"),
         ]
 
     return cmake_args
-
-def update_dynamic_libs():
-    return subprocess.run(["sudo", "ldconfig"])
 
 def resolve_executable_path(command_or_path):
     """Returns the absolute path of an executable."""
@@ -119,28 +91,6 @@ def try_create_dir(path):
             os.mkdir(path)
         except:
             os.makedirs(path)
-
-def build_protobuf(source_dir, args):
-    os.chdir(f"{source_dir}/cmake/external/protobuf")
-    configure_arg = [
-        "sudo", "cmake", ".",
-        "-Dprotobuf_BUILD_TESTS=OFF",
-        "-DBUILD_SHARED_LIBS=" + ("ON" if args.build_shared_lib else "OFF")
-    ]
-    subprocess.run(configure_arg)
-    build_arg = [
-        "sudo", "cmake", "--build", ".",
-        "--parallel", f"{multiprocessing.cpu_count()}" if args.parallel else "1"
-    ]
-    subprocess.run(build_arg)
-    install_arg = [
-        "sudo", "cmake", "--install", "."
-    ]
-    subprocess.run(install_arg)
-    if args.build_shared_lib:
-        update_dynamic_libs()
-    os.chdir(source_dir)
-
 
 def run_build(build_tree, source_dir, script_dir):
     os.chdir(source_dir)
@@ -181,20 +131,10 @@ def main():
         update_submodules(source_dir)
     
     cmake_path = resolve_executable_path(args.cmake_path)
-    print(cmake_path)
     cmake_args = generate_build_tree(cmake_path, source_dir, build_dir, args)
     try_create_dir(build_dir)
-
-    if shutil.which("protoc") is None:
-        build_protobuf(source_dir, args)
-
     run_build(cmake_args, source_dir, script_dir)
     make(build_dir, script_dir, args)
-    # if args.install:
-    #     install(source_dir, build_dir, script_dir, args)
-    #     if args.build_shared_lib:
-    #         update_dynamic_libs()
-
 
 if __name__ == '__main__':
     try:

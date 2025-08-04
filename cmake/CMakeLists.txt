@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_CXX_STANDARD 17)
 project(frcc VERSION 0.0.0 LANGUAGES C CXX)
 
-include(utils.cmake)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-option(frcc_BUILD_TEST ON)
+include(utils.cmake)
 
 set(FRCC_ROOT ${PROJECT_SOURCE_DIR}/..)
 set(FRCC_ROOT_SRC ${FRCC_ROOT}/src)
@@ -14,15 +14,6 @@ include_directories(
         ${FRCC_ROOT}/include/
         ${FRCC_ROOT}/cmake/external/onnx
 )
-
-# Build ONNX
-if (NOT DEFINED ONNX_TARGET_NAME)
-  set(ONNX_TARGET_NAME onnx)
-endif()
-
-set(ONNX_ROOT ${FRCC_ROOT}/cmake/external/onnx)
-set(ONNX_ML ON)
-add_subdirectory_if_no_target(${ONNX_ROOT} ${ONNX_TARGET_NAME})
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(CMAKE_VERBOSE_MAKEFILE ON)
@@ -38,6 +29,20 @@ set(CMAKE_CXX_FLAGS         "${CMAKE_CXX_FLAGS} ${EXTRA_C_FLAGS}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${EXTRA_C_FLAGS_RELEASE} -O3 -ffast-math")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} ${EXTRA_C_FLAGS_DEBUG} -ffast-math")
 set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG} ${EXTRA_C_FLAGS_DEBUG} -O0")
+
+# Build protobuf
+option(protobuf_BUILD_TESTS "" OFF)
+option(protobuf_MSVC_STATIC_RUNTIME "" ${ONNX_USE_MSVC_STATIC_RUNTIME})
+add_subdirectory_if_no_target(${FRCC_ROOT}/cmake/external/protobuf libprotobuf)
+
+# Build ONNX
+if (NOT DEFINED ONNX_TARGET_NAME)
+  set(ONNX_TARGET_NAME onnx)
+endif()
+
+set(ONNX_ROOT ${FRCC_ROOT}/cmake/external/onnx)
+set(ONNX_ML ON)
+add_subdirectory_if_no_target(${ONNX_ROOT} ${ONNX_TARGET_NAME})
 
 include(frcc_common.cmake)
 
@@ -56,12 +61,6 @@ install(TARGETS frcc
 install(DIRECTORY ${FRCC_ROOT}/include/
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/frcc)
 
-include(frcc_test.cmake)
-
-
-# if (frcc_BUILD_TEST)
-#     include(frcc_unittest.cmake)
-# endif (frcc_BUILD_TEST)
-
-# include(summary.cmake)
-# frcc_print_configuration_summary()
+find_package(pybind11 REQUIRED)
+pybind11_add_module(frcc_cpp2py_export "${FRCC_ROOT_SRC}/python.cc")
+target_link_libraries(frcc_cpp2py_export PRIVATE frcc ${ONNX_TARGET_NAME})

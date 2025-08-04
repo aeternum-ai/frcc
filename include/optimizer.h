@@ -13,7 +13,10 @@ namespace frcc {
 
 class Optimizer {
 public:
-    Optimizer(std::vector<std::string>& pass_names);
+    static GlobalPassRegistry AvailablePasses;
+
+public:
+    Optimizer(const std::vector<std::string>& pass_names);
     ~Optimizer();
 
     onnx::ModelProto optimize(const onnx::ModelProto& _mp_in, const bool inference_shape=true) {
@@ -45,9 +48,14 @@ public:
     }
 
 private:
-    static GlobalPassRegistry AvailablePasses;
     std::shared_ptr<PassManager> pass_manager;
 };
+
+const std::vector<std::string> GetAvailablePasses();
+
+onnx::ModelProto Optimize(const onnx::ModelProto &mp_in,
+                    const std::vector<std::string> &names,
+                    const bool &inference_shape);
 
 }
 
